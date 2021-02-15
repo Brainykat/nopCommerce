@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using FluentMigrator;
@@ -609,17 +608,7 @@ namespace Nop.Tests
                         return (await GetThumbUrlAsync(thumbFileName, storeLocation), picture);
 
                     pictureBinary ??= await LoadPictureBinaryAsync(picture);
-
-                    using var semaphore = new Semaphore(1, 1, thumbFileName);
-                    semaphore.WaitOne();
-                    try
-                    {
-                        await SaveThumbAsync(thumbFilePath, thumbFileName, string.Empty, pictureBinary);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
+                    await SaveThumbAsync(thumbFilePath, thumbFileName, string.Empty, pictureBinary);
                 }
                 else
                 {
@@ -633,29 +622,20 @@ namespace Nop.Tests
 
                     pictureBinary ??= await LoadPictureBinaryAsync(picture);
 
-                    using var semaphore = new Semaphore(1, 1, thumbFileName);
-                    semaphore.WaitOne();
-                    try
+                    if (pictureBinary != null)
                     {
-                        if (pictureBinary != null)
+                        try
                         {
-                            try
-                            {
-                                using var image = SKBitmap.Decode(pictureBinary);
-                                var format = GetImageFormatByMimeType(picture.MimeType);
-                                pictureBinary = ImageResize(image, format, targetSize);
-                            }
-                            catch
-                            {
-                            }
+                            using var image = SKBitmap.Decode(pictureBinary);
+                            var format = GetImageFormatByMimeType(picture.MimeType);
+                            pictureBinary = ImageResize(image, format, targetSize);
                         }
+                        catch
+                        {
+                        }
+                    }
 
-                        await SaveThumbAsync(thumbFilePath, thumbFileName, string.Empty, pictureBinary);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
+                    await SaveThumbAsync(thumbFilePath, thumbFileName, string.Empty, pictureBinary);
                 }
 
                 return (await GetThumbUrlAsync(thumbFileName, storeLocation), picture);

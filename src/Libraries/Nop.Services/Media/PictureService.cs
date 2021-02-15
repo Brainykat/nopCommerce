@@ -303,7 +303,7 @@ namespace Nop.Services.Media
         /// </summary>
         /// <param name="mimetype">Mime type</param>
         /// <returns>SKEncodedImageFormat</returns>
-        protected SKEncodedImageFormat GetImageFormatByMimeType(string mimeType)
+        protected virtual SKEncodedImageFormat GetImageFormatByMimeType(string mimeType)
         {
             var format = SKEncodedImageFormat.Jpeg;
             if (string.IsNullOrEmpty(mimeType))
@@ -337,7 +337,7 @@ namespace Nop.Services.Media
         /// <param name="format">Destination format</param>
         /// <param name="targetSize">Target size</param>
         /// <returns>Image as array of byte[]</returns>
-        protected byte[] ImageResize(SKBitmap image, SKEncodedImageFormat format, int targetSize)
+        protected virtual byte[] ImageResize(SKBitmap image, SKEncodedImageFormat format, int targetSize)
         {
             if (image == null)
                 throw new ArgumentNullException("Image is null");
@@ -457,12 +457,7 @@ namespace Nop.Services.Media
             var fileExtension = _fileProvider.GetFileExtension(filePath);
             var thumbFileName = $"{_fileProvider.GetFileNameWithoutExtension(filePath)}_{targetSize}{fileExtension}";
             var thumbFilePath = await GetThumbLocalPathAsync(thumbFileName);
-            if (await GeneratedThumbExistsAsync(thumbFilePath, thumbFileName))
-                return await GetThumbUrlAsync(thumbFileName, storeLocation);
-
-            using var semaphore = new Semaphore(1, 1, thumbFileName);
-            semaphore.WaitOne();
-            try
+            if (!await GeneratedThumbExistsAsync(thumbFilePath, thumbFileName))
             {
                 using var image = SKBitmap.Decode(filePath);
                 var codec = SKCodec.Create(filePath);
@@ -470,11 +465,7 @@ namespace Nop.Services.Media
                 var pictureBinary = ImageResize(image, format, targetSize);
                 await SaveThumbAsync(thumbFilePath, thumbFileName, string.Empty, pictureBinary);
             }
-            finally
-            {
-                semaphore.Release();
-            }
-            
+
             return await GetThumbUrlAsync(thumbFileName, storeLocation);
         }
 
@@ -719,7 +710,7 @@ namespace Nop.Services.Media
             seoFilename = CommonHelper.EnsureMaximumLength(seoFilename, 100);
 
             if (validateBinary)
-                pictureBinary = ValidatePicture(pictureBinary, mimeType);
+                pictureBinary = await ValidatePictureAsync(pictureBinary, mimeType);
 
             var picture = new Picture
             {
@@ -848,7 +839,7 @@ namespace Nop.Services.Media
             seoFilename = CommonHelper.EnsureMaximumLength(seoFilename, 100);
 
             if (validateBinary)
-                pictureBinary = ValidatePicture(pictureBinary, mimeType);
+                pictureBinary = await ValidatePictureAsync(pictureBinary, mimeType);
 
             var picture = await GetPictureByIdAsync(pictureId);
             if (picture == null)
@@ -946,7 +937,7 @@ namespace Nop.Services.Media
         /// <param name="pictureBinary">Picture binary</param>
         /// <param name="mimeType">MIME type</param>
         /// <returns>Picture binary or throws an exception</returns>
-        public virtual byte[] ValidatePicture(byte[] pictureBinary, string mimeType)
+        public virtual Task<byte[]> ValidatePictureAsync(byte[] pictureBinary, string mimeType)
         {
             try
             {
@@ -958,11 +949,11 @@ namespace Nop.Services.Media
                     var format = GetImageFormatByMimeType(mimeType);
                     pictureBinary = ImageResize(image, format, _mediaSettings.MaximumImageSize);
                 }
-                return pictureBinary;
+                return Task.FromResult(pictureBinary);
             }
             catch
             {
-                return pictureBinary;
+                return Task.FromResult(pictureBinary);
             }
         }
 
