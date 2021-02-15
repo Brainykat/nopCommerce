@@ -15,7 +15,7 @@ namespace Nop.Web.Areas.Admin.Controllers
     [AuthorizeAdmin]
     [ValidateVendor]
     [SaveSelectedTab]
-    [DetailValidationMessage]
+    [NotNullValidationMessage]
     public abstract partial class BaseAdminController : BaseController
     {
         /// <summary>

@@ -286,7 +286,7 @@ namespace Nop.Web.Framework.Migrations.UpgradeTo440
                 ["Admin.System.Log.PremiumSupport"] = "Have questions or need help? Get dedicated support from the nopCommerce team with a guaranteed response within 24 hours. Please find more about our premium support services <a href=\"https://www.nopcommerce.com/nopcommerce-premium-support-services?utm_source=admin-panel&utm_medium=menu&utm_campaign=premium_support&utm_content=log-details\" target=\"_blank\">here</a>.",
 
                 //#4564
-                ["Admin.Common.ValueMustNotBeNull" ] = "Please provide a {0}"
+                ["Admin.Common.Validation.NotEmpty"] = "Please provide a {0}"
             }).Wait();
 
             // rename locales
@@ -331,6 +331,9 @@ namespace Nop.Web.Framework.Migrations.UpgradeTo440
                 new { Name = "Admin.Configuration.ExternalAuthenticationMethods", NewName = "Admin.Configuration.Authentication.ExternalMethods"},
                 new { Name = "Permission.ManageExternalAuthenticationMethods", NewName = "Permission.Authentication.ManageExternalMethods"},
                 //</MFA #475>
+                
+                //#4564
+                new { Name = "Nop.Web.Framework.Validators.MaxDecimal", NewName = "Admin.Common.Validation.Decimal.Max"},
             };
 
             var languageService = EngineContext.Current.Resolve<ILanguageService>();
